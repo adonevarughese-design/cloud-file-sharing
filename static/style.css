@@ -1,0 +1,197 @@
+body {
+    background: linear-gradient(135deg, #020617, #0f172a, #1e293b);
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+    color: #e5e7eb;
+    animation: fadeIn 0.8s ease-in;
+}
+
+.title {
+    color: #38bdf8;
+    text-align: center;
+    padding-top: 40px;
+    font-weight: bold;
+    animation: slideDown 0.8s ease;
+}
+
+.auth-card,
+.dashboard-card {
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid #334155;
+    color: #e5e7eb;
+    border-radius: 18px;
+    box-shadow: 0 0 25px rgba(56, 189, 248, 0.25);
+    animation: zoomIn 0.6s ease;
+}
+
+.auth-card {
+    width: 390px;
+    margin: 90px auto;
+    padding: 32px;
+}
+
+.dashboard-card {
+    margin-top: 60px;
+    padding: 30px;
+}
+
+.form-control {
+    background: #020617;
+    color: white;
+    border: 1px solid #475569;
+}
+
+.form-control:focus {
+    background: #020617;
+    color: white;
+    border-color: #38bdf8;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+}
+
+.form-control::placeholder {
+    color: #94a3b8;
+}
+
+.btn-custom {
+    background: linear-gradient(135deg, #2563eb, #06b6d4);
+    color: white;
+    border: none;
+    transition: 0.3s;
+}
+
+.btn-custom:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.6);
+    color: white;
+}
+
+.sidebar {
+    min-height: 100vh;
+    background: #020617;
+    color: white;
+    padding: 25px;
+    border-right: 1px solid #334155;
+    animation: slideLeft 0.7s ease;
+}
+
+.sidebar h3 {
+    color: #38bdf8;
+}
+
+.sidebar a {
+    color: #cbd5e1;
+    text-decoration: none;
+    display: block;
+    margin: 20px 0;
+    transition: 0.3s;
+}
+
+.sidebar a:hover {
+    color: #38bdf8;
+    transform: translateX(6px);
+}
+
+.table {
+    color: #e5e7eb;
+}
+
+td {
+    background: #0f172a;
+    color: white;
+}
+
+a {
+    color: #38bdf8;
+}
+
+a:hover {
+    color: #7dd3fc;
+}
+
+/* LIGHT MODE */
+
+.light-mode {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    color: #111827;
+}
+
+.light-mode .auth-card,
+.light-mode .dashboard-card {
+    background: white;
+    color: black;
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.light-mode .sidebar {
+    background: #e2e8f0;
+    color: black;
+}
+
+.light-mode .sidebar h3 {
+    color: #2563eb;
+}
+
+.light-mode .sidebar a {
+    color: black;
+}
+
+.light-mode .sidebar a:hover {
+    color: #2563eb;
+}
+
+.light-mode .form-control {
+    background: white;
+    color: black;
+}
+
+.light-mode .form-control::placeholder {
+    color: gray;
+}
+
+.light-mode td {
+    background: white;
+    color: black;
+}
+
+.light-mode .title {
+    color: #2563eb;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-25px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes zoomIn {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes slideLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-40px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
