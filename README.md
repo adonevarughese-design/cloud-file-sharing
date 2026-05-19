@@ -1,27 +1,26 @@
-# CloudShare – Secure Cloud File Sharing System
+# CloudShare – Cloud File Sharing Application
 
-## Project Overview
+## Introduction
 
-CloudShare is a secure cloud-based file sharing application developed using Flask and deployed on AWS EC2. The project allows users to register, log in securely, upload files, download files, and manage shared content through a modern web interface.
+CloudShare is a cloud-based file sharing web application developed using Flask. The project allows users to create an account, log in, upload files, download files, and manage uploaded content through a simple web interface.
 
-The application is deployed using Docker, Gunicorn, and Nginx for production-level hosting. AWS services such as EC2, S3, and CloudWatch are integrated for cloud deployment, storage backup, and monitoring.
+This project was developed during my internship to learn practical concepts related to cloud computing, Linux server management, Docker, AWS services, and deployment of web applications.
 
 ---
 
 ## Features
 
 - User Registration and Login
-- Password Hashing and Secure Authentication
+- Password Hashing
 - File Upload and Download
-- Dark/Light Theme Toggle
+- Delete Uploaded Files
+- Dark and Light Theme
+- Responsive User Interface
+- Docker Support
 - AWS EC2 Deployment
-- Docker Containerization
-- Nginx Reverse Proxy
-- Gunicorn Production Server
-- GitHub Version Control
-- GitHub Actions CI/CD
-- AWS S3 Backup Integration
-- CloudWatch Monitoring and Alerts
+- AWS S3 Backup Storage
+- GitHub Actions CI/CD Workflow
+- CloudWatch Monitoring
 
 ---
 
@@ -30,75 +29,72 @@ The application is deployed using Docker, Gunicorn, and Nginx for production-lev
 ### Frontend
 - HTML
 - CSS
+- Bootstrap
 - JavaScript
 
 ### Backend
-- Python Flask
+- Python
+- Flask
 - Flask-SQLAlchemy
 
-### DevOps & Cloud
+### Cloud and DevOps
 - AWS EC2
 - AWS S3
 - AWS CloudWatch
 - Docker
-- Gunicorn
 - Nginx
+- Gunicorn
 - GitHub Actions
 
 ---
 
-## Project Architecture
+## Project Working
+
+The application is deployed on an AWS EC2 Ubuntu server. Nginx is used as a reverse proxy server, and Gunicorn is used to run the Flask application. Docker is used for containerization, and GitHub Actions is used for basic CI/CD automation.
+
+Uploaded files and database backups are stored in AWS S3 for backup purposes. CloudWatch is used to monitor the EC2 instance and CPU usage.
+
+---
+
+## Architecture
 
 User Browser
 ↓
-Nginx Reverse Proxy
+Nginx
 ↓
 Docker Container
 ↓
-Gunicorn Server
+Gunicorn
 ↓
 Flask Application
 ↓
 SQLite Database
 
----
-
-## Deployment Steps
-
-1. Created AWS EC2 Ubuntu Instance
-2. Configured Security Groups
-3. Installed Python, Nginx, Docker
-4. Cloned GitHub Repository
-5. Configured Gunicorn Service
-6. Configured Nginx Reverse Proxy
-7. Built Docker Container
-8. Configured GitHub Actions CI/CD
-9. Integrated AWS S3 Backup
-10. Configured CloudWatch Monitoring
+Additional AWS Services:
+- Amazon S3 for backups
+- CloudWatch for monitoring
 
 ---
 
 ## Security Features
 
-- Password Hashing
-- Session-Based Authentication
-- Secure File Handling
-- Cloud Backup
-- Reverse Proxy Protection
+- Password hashing using Werkzeug
+- Session-based authentication
+- File type validation
+- Private S3 bucket configuration
 
 ---
 
-## Future Enhancements
+## Future Improvements
 
-- HTTPS/SSL Integration
-- Multi-user Role Management
-- PostgreSQL/RDS Integration
-- Automatic Deployment Pipeline
-- File Encryption
+- HTTPS support
+- Better user role management
+- PostgreSQL database
+- Automatic deployment improvements
 
 ---
 
 ## Author
 
-Adone Varughese
-BCA Final Year Project
+Adone Varughese  
+Internship Project
