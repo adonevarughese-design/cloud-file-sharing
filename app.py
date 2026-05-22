@@ -1,154 +1,214 @@
-from flask import Flask, render_template, request, redirect, send_from_directory, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import os
 
 app = Flask(__name__)
 
-app.secret_key = "change-this-secret-key"
-
+app.config['SECRET_KEY'] = 'cloudshare-secret-key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+
 db = SQLAlchemy(app)
 
-UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+
+if not os.path.exists('uploads'):
+    os.makedirs('uploads')
 
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(100), nullable=False, unique=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
+    role = db.Column(db.String(20), default='user')
+
+
+class File(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(200), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    return response
 
 
 @app.route('/')
 def home():
-    return render_template('login.html')
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    files = File.query.all()
+    return render_template('dashboard.html', files=files)
 
 
-@app.route('/register')
+@app.route('/register', methods=['GET', 'POST'])
 def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+
+        existing_user = User.query.filter_by(email=email).first()
+
+        if existing_user:
+            flash('Email already exists')
+            return redirect(url_for('register'))
+
+        hashed_password = generate_password_hash(password)
+
+        user = User(
+            username=username,
+            email=email,
+            password=hashed_password,
+            role='user'
+        )
+
+        db.session.add(user)
+        db.session.commit()
+
+        flash('Registration successful')
+        return redirect(url_for('login'))
+
     return render_template('register.html')
 
 
-@app.route('/register_user', methods=['POST'])
-def register_user():
-    username = request.form['username']
-    email = request.form['email']
-    password = request.form['password']
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
 
-    existing_user = User.query.filter_by(email=email).first()
+        # Fixed Admin Login
+        if email == 'admin@cloudshare.com' and password == 'admin123':
 
-    if existing_user:
-        return "Email already registered"
+            admin = User.query.filter_by(email=email).first()
 
-    hashed_password = generate_password_hash(password)
+            if not admin:
+                admin = User(
+                    username='Admin',
+                    email=email,
+                    password=generate_password_hash(password),
+                    role='admin'
+                )
+                db.session.add(admin)
+                db.session.commit()
 
-    new_user = User(
-        username=username,
-        email=email,
-        password=hashed_password
-    )
+            session['user_id'] = admin.id
+            session['role'] = 'admin'
 
-    db.session.add(new_user)
-    db.session.commit()
+            return redirect(url_for('admin_dashboard'))
 
-    return redirect('/')
+        user = User.query.filter_by(email=email).first()
 
+        if user and check_password_hash(user.password, password):
+            session['user_id'] = user.id
+            session['role'] = user.role
 
-@app.route('/login_user', methods=['POST'])
-def login_user():
-    email = request.form['email']
-    password = request.form['password']
+            return redirect(url_for('home'))
 
-    user = User.query.filter_by(email=email).first()
+        flash('Invalid credentials')
 
-    if user and check_password_hash(user.password, password):
-        session['user_id'] = user.id
-        session['username'] = user.username
-        return redirect('/dashboard')
-
-    return "Invalid Email or Password"
+    return render_template('login.html')
 
 
-@app.route('/dashboard')
-def dashboard():
-    if 'user_id' not in session:
-        return redirect('/')
+@app.route('/admin')
+def admin_dashboard():
 
-    files = os.listdir(app.config['UPLOAD_FOLDER'])
+    if 'role' not in session or session['role'] != 'admin':
+        flash('Access denied')
+        return redirect(url_for('home'))
 
-    return render_template(
-        'dashboard.html',
-        files=files,
-        username=session['username']
-    )
+    users = User.query.all()
+    files = File.query.all()
+
+    return render_template('admin.html', users=users, files=files)
 
 
 @app.route('/upload', methods=['POST'])
-def upload_file():
+def upload():
+
     if 'user_id' not in session:
-        return redirect('/')
+        return redirect(url_for('login'))
 
     if 'file' not in request.files:
-        return redirect('/dashboard')
+        flash('No file selected')
+        return redirect(url_for('home'))
 
     file = request.files['file']
 
     if file.filename == '':
-        return redirect('/dashboard')
+        flash('No selected file')
+        return redirect(url_for('home'))
 
-    allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png', 'docx', 'txt', 'zip']
+    if file and allowed_file(file.filename):
 
-    extension = file.filename.rsplit('.', 1)[-1].lower()
+        filename = secure_filename(file.filename)
 
-    if extension not in allowed_extensions:
-        return "File type not allowed"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-    file.save(filepath)
+        file.save(filepath)
 
-    return redirect('/dashboard')
+        new_file = File(
+            filename=filename,
+            user_id=session['user_id']
+        )
+
+        db.session.add(new_file)
+        db.session.commit()
+
+        flash('File uploaded successfully')
+
+    else:
+        flash('Invalid file type')
+
+    return redirect(url_for('home'))
 
 
 @app.route('/download/<filename>')
-def download_file(filename):
-    if 'user_id' not in session:
-        return redirect('/')
-
-    return send_from_directory(
-        app.config['UPLOAD_FOLDER'],
-        filename,
-        as_attachment=True
-    )
+def download(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=True)
 
 
-@app.route('/delete/<filename>')
-def delete_file(filename):
-    if 'user_id' not in session:
-        return redirect('/')
+@app.route('/delete/<int:file_id>')
+def delete(file_id):
 
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file = File.query.get_or_404(file_id)
+
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
 
     if os.path.exists(filepath):
         os.remove(filepath)
 
-    return redirect('/dashboard')
+    db.session.delete(file)
+    db.session.commit()
+
+    flash('File deleted successfully')
+
+    return redirect(url_for('home'))
 
 
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect('/')
-
-
-with app.app_context():
-    db.create_all()
+    return redirect(url_for('login'))
 
 
 if __name__ == '__main__':
-    app.run(
-        host='0.0.0.0',
-        port=5000,
-        debug=True
-    )
+    with app.app_context():
+        db.create_all()
+
+    app.run(debug=True)
