@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
@@ -12,6 +14,12 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 db = SQLAlchemy(app)
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"]
+)
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
@@ -34,8 +42,7 @@ class File(db.Model):
 
 
 def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 @app.after_request
@@ -43,7 +50,16 @@ def add_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     return response
+
+
+@app.route('/health')
+def health():
+    return {
+        "status": "healthy",
+        "application": "CloudShare"
+    }
 
 
 @app.route('/')
@@ -87,14 +103,13 @@ def register():
 
 
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
 
-        # Fixed Admin Login
         if email == 'admin@cloudshare.com' and password == 'admin123':
-
             admin = User.query.filter_by(email=email).first()
 
             if not admin:
@@ -117,7 +132,6 @@ def login():
         if user and check_password_hash(user.password, password):
             session['user_id'] = user.id
             session['role'] = user.role
-
             return redirect(url_for('home'))
 
         flash('Invalid credentials')
@@ -127,7 +141,6 @@ def login():
 
 @app.route('/admin')
 def admin_dashboard():
-
     if 'role' not in session or session['role'] != 'admin':
         flash('Access denied')
         return redirect(url_for('home'))
@@ -140,7 +153,6 @@ def admin_dashboard():
 
 @app.route('/upload', methods=['POST'])
 def upload():
-
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
@@ -155,9 +167,7 @@ def upload():
         return redirect(url_for('home'))
 
     if file and allowed_file(file.filename):
-
         filename = secure_filename(file.filename)
-
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
         file.save(filepath)
@@ -171,7 +181,6 @@ def upload():
         db.session.commit()
 
         flash('File uploaded successfully')
-
     else:
         flash('Invalid file type')
 
@@ -180,14 +189,18 @@ def upload():
 
 @app.route('/download/<filename>')
 def download(filename):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename, as_attachment=True)
 
 
 @app.route('/delete/<int:file_id>')
 def delete(file_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
 
     file = File.query.get_or_404(file_id)
-
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
 
     if os.path.exists(filepath):
@@ -197,7 +210,6 @@ def delete(file_id):
     db.session.commit()
 
     flash('File deleted successfully')
-
     return redirect(url_for('home'))
 
 
